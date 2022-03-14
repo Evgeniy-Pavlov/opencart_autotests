@@ -3,13 +3,12 @@ import os
 from selenium import webdriver
 import logging
 
-mydir = os.getcwd().replace('\\','/')
+mydir = os.getcwd().replace('\\', '/')
 path = "tests/logs"
 try:
     os.mkdir(mydir + path)
 except OSError:
     print("Директория скорее всего уже существует")
-
 
 
 def pytest_addoption(parser):
@@ -22,7 +21,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--ext", default="", help="If you use windows pass .exe")
     parser.addoption(
-         "--headless", action="store_true", help="To run browser headless")
+        "--headless", action="store_true", help="To run browser headless")
     parser.addoption(
         "--url", action="store", default="https://demo.opencart.com/", type=str, help='Default url')
     parser.addoption(
@@ -76,21 +75,12 @@ def browser(request):
 
         def final():
             driver.quit()
+
         request.addfinalizer(final)
         return driver
-
 
 
 @pytest.fixture
 def url_call(request):
     url = request.config.getoption("--url")
     return url
-
-@pytest.fixture
-def http_s(request):
-    url = request.config.getoption("--url")
-    if url == '192.168.56.1:80':
-        protocol = 'http'
-    else:
-        protocol = 'https'
-    return protocol
