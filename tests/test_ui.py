@@ -78,10 +78,10 @@ def test_search_form(browser, url_call, input_product):
 
 
 @allure.feature("Тесты главной страницы.")
-@allure.title("Появление аллерта при добавлении товара в корзину.")
+@allure.title("Проверка добавления товара в корзину и отображение его в соответствующем меню.")
 @pytest.mark.parametrize("num", product_add_func())
 def test_add_product_in_view_cart(browser, url_call, num):
-    """Проверяем появление аллерта при добавлении товара в корзину."""
+    """Проверяем добавление товара в корзину и отображение его в соответствующем меню."""
     addProduct = Base_page(browser)
     addProduct.open_base_page(url_call)
     addProduct.click_button_cart()
