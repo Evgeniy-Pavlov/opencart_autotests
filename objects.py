@@ -1,8 +1,21 @@
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as es
 import time
 import logging
 import allure
+
+valute = ("Euro", "Pound", "Dollar")
+input_product = ("Mac", "hp", "lada")
+
+
+def product_add_func():
+    catalog = [("https://demo.opencart.com/index.php?route=product/product&product_id=43", "1"),
+               ("https://demo.opencart.com/index.php?route=product/product&product_id=40", "2"),
+               ]
+    return catalog
 
 
 class Base_page():
@@ -25,9 +38,76 @@ class Base_page():
     @allure.step("Кликаем на иконку мой аккаунт.")
     def click_my_account(self):
         try:
-            self.logger.info("Clicking element {}".format(".dropdown"))
-            self.browser.find_element(By.CSS_SELECTOR, ".dropdown").click()
+            self.logger.info("Clicking element {}".format("//*[@id=\"top-links\"]/ul/li[2]/a"))
+            self.browser.find_element(By.XPATH, "//*[@id=\"top-links\"]/ul/li[2]/a").click()
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
 
+    @allure.step("Открываем страницу логина.")
+    def click_my_account_login(self):
+        try:
+            self.logger.info("Clicking element {}".format("login"))
+            WebDriverWait(self.browser, 2).until(es.presence_of_element_located
+                                                 ((By.XPATH, "//*[@id=\"top-links\"]/ul/li[2]/ul/li[2]")))
+            self.browser.find_element(By.XPATH, "//*[@id=\"top-links\"]/ul/li[2]/ul/li[2]/a").click()
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Проверяем наличие блока с полями для ввода логина(почты) и пароля.")
+    def check_form_returning_customer(self):
+        try:
+            self.logger.info("Check form Returning Customer {}".format("//*[@id=\"content\"]/div/div[2]/div"))
+            WebDriverWait(self.browser, 2).until(es.presence_of_element_located
+                                                 ((By.CSS_SELECTOR, "//*[@id=\"content\"]/div/div[2]/div")))
+            self.browser.find_element(By.CSS_SELECTOR, ".well")
+        except NoSuchElementException or TimeoutException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Проверяем наличие и ввод поля E-Mail Address.")
+    def check_form_input_email_login(self):
+        try:
+            self.logger.info("Check #input-email")
+            self.browser.find_element(By.CSS_SELECTOR, "#input-email").clear()
+            self.logger.info("Input #input-email")
+            self.browser.find_element(By.CSS_SELECTOR, "#input-email").send_keys("test@mail.ru")
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Проверяем наличие поля для ввода пароля.")
+    def check_form_input_password_login(self):
+        try:
+            self.logger.info("Check #input-password")
+            self.browser.find_element(By.CSS_SELECTOR, "#input-password").clear()
+            self.logger.info("Input #input-password")
+            self.browser.find_element(By.CSS_SELECTOR, "#input-password").send_keys("1234")
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Нажимаем на кнопку login в форме авторизации.")
+    def click_my_account_login_button(self):
+        try:
+            self.logger.info("Clicking element-button {}".format("btn btn-primary"))
+            self.browser.find_element(By.XPATH, "//*[@id=\"content\"]/div/div[2]/div/form/input").click()
         except NoSuchElementException as nee:
             self.logger.error(nee.msg)
             allure.attach(body=self.browser.get_screenshot_as_png(),
@@ -61,6 +141,41 @@ class Base_page():
                           attachment_type=allure.attachment_type.PNG)
             raise AssertionError(nee.msg)
 
+    @allure.step("Открываем список добавленных в корзину товаров.")
+    def click_button_cart(self):
+        try:
+            self.logger.info("Clicking element: #cart")
+            self.browser.find_element(By.CSS_SELECTOR, "#cart").click()
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Проверяем, что корзина пустая.")
+    def check_empty_cart(self):
+        try:
+            self.logger.info("Check element: .text-center")
+            self.browser.find_element(By.CSS_SELECTOR, ".text-center")
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Проверяем, что корзина не пустая. В корзине добавлен товар.")
+    def check_not_empty_cart(self):
+        try:
+            self.logger.info("Check element: .table-striped")
+            self.browser.find_element(By.CSS_SELECTOR, ".table-striped")
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
 
     @allure.step("Добавляем товар к сравнению.")
     def click_add_comparison(self, num=str()):
@@ -89,6 +204,48 @@ class Base_page():
             elif valute == "Dollar":
                 self.browser.find_element(
                     By.XPATH, "//*[@id=\"form-currency\"]/div/ul/li[3]/button").click()
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Вводим в поле поиск.")
+    def input_search_in_base_page(self, input_product):
+        try:
+            self.logger.info("Clicking element: .form-control'")
+            self.browser.find_element(
+                By.CSS_SELECTOR, ".form-control").clear()
+            self.logger.info("Input in .form-control'")
+            self.browser.find_element(
+                By.CSS_SELECTOR, ".form-control").send_keys(input_product)
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Нажимаем на кнопку поиска.")
+    def click_button_search(self):
+        try:
+            self.logger.info("Clicking element: .input-group-btn")
+            self.browser.find_element(
+                By.CSS_SELECTOR, ".input-group-btn").click()
+        except NoSuchElementException as nee:
+            self.logger.error(nee.msg)
+            allure.attach(body=self.browser.get_screenshot_as_png(),
+                          name='screenshot',
+                          attachment_type=allure.attachment_type.PNG)
+            raise AssertionError(nee.msg)
+
+    @allure.step("Проверяем наличие результатов поиска.")
+    def check_result_search(self):
+        try:
+            self.logger.info("Search element: .product-layout")
+            self.browser.find_element(
+                By.CSS_SELECTOR, ".product-layout")
         except NoSuchElementException as nee:
             self.logger.error(nee.msg)
             allure.attach(body=self.browser.get_screenshot_as_png(),
