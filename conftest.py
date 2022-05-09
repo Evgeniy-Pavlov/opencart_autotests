@@ -1,10 +1,13 @@
 import pytest
 import os
+
+import wrapt
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException as nee
 from selenium.webdriver.support import expected_conditions as es
 import logging
 import allure
+from allure import step
 
 mydir = os.getcwd().replace('\\', '/')
 path = "tests/logs"
@@ -48,47 +51,60 @@ def browser(request):
             "enableVideo": False
         }
     }
-    try:
-        if remote == "True":
-            driver = webdriver.Remote(command_executor=f"http://{executor}:4444/wd/hub",
-                                      desired_capabilities=capabilities)
-            driver.implicitly_wait(2)
-            driver.maximize_window()
-            request.addfinalizer(driver.quit)
-            return driver
-        elif remote == "False":
-            driver = None
-            filepath = request.config.getoption("--filepath")
-            browser_call = request.config.getoption("--browser")
-            headless_mode = request.config.getoption("--headless")
-            _ext = request.config.getoption("--ext")
-            test_name = request.node.name
-            logging.info("Tests {} started".format(test_name))
-            if browser_call == "chrome":
-                options = webdriver.ChromeOptions()
-                options.headless = headless_mode
-                driver = webdriver.Chrome(executable_path=f"{filepath}/chromedriver{_ext}", options=options)
-            elif browser_call == "firefox":
-                options = webdriver.FirefoxOptions()
-                options.headless = headless_mode
-                driver = webdriver.Firefox(executable_path=f"{filepath}/geckodriver{_ext}", options=options)
-            elif browser_call == "edge":
-                driver = webdriver.Edge(executable_path=f"{filepath}/msedgedriver{_ext}")
-            elif browser_call == "opera":
-                driver = webdriver.Opera(executable_path=f"{filepath}/operadriver_win64/operadriver{_ext}")
+    if remote == "True":
+        driver = webdriver.Remote(command_executor=f"http://{executor}:4444/wd/hub",
+                                  desired_capabilities=capabilities)
+        driver.implicitly_wait(2)
+        driver.maximize_window()
+        request.addfinalizer(driver.quit)
+        return driver
+    elif remote == "False":
+        driver = None
+        filepath = request.config.getoption("--filepath")
+        browser_call = request.config.getoption("--browser")
+        headless_mode = request.config.getoption("--headless")
+        _ext = request.config.getoption("--ext")
+        test_name = request.node.name
+        logging.info("Tests {} started".format(test_name))
+        if browser_call == "chrome":
+            options = webdriver.ChromeOptions()
+            options.headless = headless_mode
+            driver = webdriver.Chrome(executable_path=f"{filepath}/chromedriver{_ext}", options=options)
+        elif browser_call == "firefox":
+            options = webdriver.FirefoxOptions()
+            options.headless = headless_mode
+            driver = webdriver.Firefox(executable_path=f"{filepath}/geckodriver{_ext}", options=options)
+        elif browser_call == "edge":
+            driver = webdriver.Edge(executable_path=f"{filepath}/msedgedriver{_ext}")
+        elif browser_call == "opera":
+            driver = webdriver.Opera(executable_path=f"{filepath}/operadriver_win64/operadriver{_ext}")
+        return driver
+        def final():
+            driver.quit()
+        request.addfinalizer(final)
 
-            def final():
-                driver.quit()
-            request.addfinalizer(final)
-            return driver
-    except NoSuchElementException as nee:
-        logging.getLogger.error(nee.msg)
-        allure.attach(body=driver.get_screenshot_as_png(),
-                      name='screenshot',
-                      attachment_type=allure.attachment_type.PNG)
-        raise AssertionError(nee.msg)
-
-
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    if rep.when == 'call' and rep.failed:
+        mode = 'a' if os.path.exists('failures') else 'w'
+        try:
+            with open('failures', mode) as f:
+                if 'browser' in item.fixturenames:
+                    web_driver = item.funcargs['browser']
+                else:
+                    print('Fail to take screen-shot')
+                    return
+            allure.attach(
+                body=web_driver.get_screenshot_as_png(),
+                name='screenshot',
+                attachment_type=allure.attachment_type.PNG
+            )
+            raise AssertionError(nee.msg)
+            logging.getLogger.error(nee.msg)
+        except Exception as e:
+            print('Fail to take screen-shot: {}'.format(e))
 
 @pytest.fixture
 def url_call(request):
