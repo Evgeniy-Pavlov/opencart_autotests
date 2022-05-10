@@ -1,13 +1,9 @@
 import pytest
 import os
-
-import wrapt
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException as nee
-from selenium.webdriver.support import expected_conditions as es
 import logging
 import allure
-from allure import step
 
 mydir = os.getcwd().replace('\\', '/')
 path = "tests/logs"
@@ -78,10 +74,14 @@ def browser(request):
             driver = webdriver.Edge(executable_path=f"{filepath}/msedgedriver{_ext}")
         elif browser_call == "opera":
             driver = webdriver.Opera(executable_path=f"{filepath}/operadriver_win64/operadriver{_ext}")
-        return driver
+
+
         def final():
             driver.quit()
+
         request.addfinalizer(final)
+        return driver
+
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
@@ -90,21 +90,23 @@ def pytest_runtest_makereport(item, call):
     if rep.when == 'call' and rep.failed:
         mode = 'a' if os.path.exists('failures') else 'w'
         try:
-            with open('failures', mode) as f:
-                if 'browser' in item.fixturenames:
-                    web_driver = item.funcargs['browser']
-                else:
-                    print('Fail to take screen-shot')
-                    return
+            if 'browser' in item.fixturenames:
+                web_driver = item.funcargs['browser']
+            else:
+                print('Fail to take screen-shot')
+                return
             allure.attach(
                 body=web_driver.get_screenshot_as_png(),
                 name='screenshot',
                 attachment_type=allure.attachment_type.PNG
             )
-            raise AssertionError(nee.msg)
+        except nee:
             logging.getLogger.error(nee.msg)
+            raise AssertionError(nee.msg)
         except Exception as e:
             print('Fail to take screen-shot: {}'.format(e))
+            raise AssertionError(e.msg)
+
 
 @pytest.fixture
 def url_call(request):
