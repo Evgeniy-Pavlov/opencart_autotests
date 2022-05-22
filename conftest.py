@@ -1,7 +1,6 @@
 import pytest
 import os
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException as nee
 import logging
 import allure
 
@@ -75,8 +74,8 @@ def browser(request):
         elif browser_call == "opera":
             driver = webdriver.Opera(executable_path=f"{filepath}/operadriver_win64/operadriver{_ext}")
 
-
         def final():
+            allure.attach(body=capabilities, attachment_type=allure.attachment_type.JSON, name='capabilities')
             driver.quit()
 
         request.addfinalizer(final)
@@ -84,28 +83,25 @@ def browser(request):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(item):
     outcome = yield
     rep = outcome.get_result()
     if rep.when == 'call' and rep.failed:
         mode = 'a' if os.path.exists('failures') else 'w'
         try:
-            if 'browser' in item.fixturenames:
-                web_driver = item.funcargs['browser']
-            else:
-                print('Fail to take screen-shot')
-                return
+            with open('failures', mode):
+                if 'browser' in item.fixturenames:
+                    web_driver = item.funcargs['browser']
+                else:
+                    print('Fail to take screen-shot')
+                    return
             allure.attach(
-                body=web_driver.get_screenshot_as_png(),
+                web_driver.get_screenshot_as_png(),
                 name='screenshot',
                 attachment_type=allure.attachment_type.PNG
             )
-        except nee:
-            logging.getLogger.error(nee.msg)
-            raise AssertionError(nee.msg)
         except Exception as e:
             print('Fail to take screen-shot: {}'.format(e))
-            raise AssertionError(e.msg)
 
 
 @pytest.fixture

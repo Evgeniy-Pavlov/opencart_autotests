@@ -4,6 +4,7 @@ from selenium.webdriver.support import expected_conditions as es
 import time
 import logging
 import allure
+from selenium.common.exceptions import NoSuchElementException
 
 valute = ("Euro", "Pound", "Dollar")
 input_product = ("Mac", "hp", "lada")
@@ -16,7 +17,7 @@ def product_add_func():
     return catalog
 
 
-class Base_page():
+class Base_page:
     def __init__(self, browser):
         self.browser = browser
         self.logger = logging.getLogger(type(self).__name__)
@@ -139,8 +140,11 @@ class Base_page():
 
     @allure.step("Проверяем наличие результатов поиска.")
     def check_result_search(self):
-        self.logger.info("Search element: .product-layout")
-        self.browser.find_element(*self.SEARCH_RESULT_PRODUCT_DIV)
+        try:
+            self.logger.info("Search element: .product-layout")
+            self.browser.find_element(*self.SEARCH_RESULT_PRODUCT_DIV)
+        except NoSuchElementException as nee:
+            raise AssertionError(nee)
 
 
 class Catalog_page(Base_page):
